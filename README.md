@@ -38,10 +38,10 @@ wrangler tail
 
 ## Models
 
-- [`@cf/meta/llama-3.2-3b-instruct`](https://developers.cloudflare.com/workers-ai/models/llama-3.2-3b-instruct/) - Prompt enhancement
+- [`@cf/google/gemma-4-26b-a4b-it`](https://developers.cloudflare.com/workers-ai/models/gemma-4-26b-a4b-it/) - Prompt enhancement (replaced Llama 3.2 3B, retired 2026-11-20)
 - [`@cf/black-forest-labs/flux-2-dev`](https://developers.cloudflare.com/workers-ai/models/flux-2-dev/) - Image generation
 
-Llama LLM requests are routed through Cloudflare AI Gateway (`ai-gateway-image-generator`) for analytics, caching, and rate limiting.
+Prompt-enhancement requests are routed through Cloudflare AI Gateway (`ai-gateway-image-generator`) for analytics, caching, and rate limiting.
 
 # Disclaimer
 

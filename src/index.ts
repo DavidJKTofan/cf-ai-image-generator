@@ -2,6 +2,17 @@ export interface Env {
 	AI: any;
 }
 
+/** Reads the text of a Workers AI chat response: OpenAI `choices` shape (current models) or legacy `response`. */
+function extractText(res: unknown): string | undefined {
+	if (typeof res !== 'object' || res === null) return undefined;
+	if ('choices' in res && Array.isArray(res.choices)) {
+		const content = res.choices[0]?.message?.content;
+		if (typeof content === 'string') return content;
+	}
+	if ('response' in res && typeof res.response === 'string') return res.response;
+	return undefined;
+}
+
 async function streamToBlob(stream: ReadableStream, contentType: string): Promise<Blob> {
 	const reader = stream.getReader();
 	const chunks: Uint8Array[] = [];
@@ -60,12 +71,12 @@ export default {
 
 				// Only enhance prompt if enabled and no images provided
 				if (enhance && images.length === 0) {
-					console.log('[LLAMA] Starting prompt enhancement via AI Gateway');
-					console.log('[LLAMA] Original prompt:', finalPrompt);
+					console.log('[ENHANCE] Starting prompt enhancement via AI Gateway');
+					console.log('[ENHANCE] Original prompt:', finalPrompt);
 
 					try {
-						const enhanceResponse = await env.AI.run(
-							'@cf/meta/llama-3.2-3b-instruct',
+						const enhanceResponse: unknown = await env.AI.run(
+							'@cf/google/gemma-4-26b-a4b-it',
 							{
 								messages: [
 									{
@@ -78,6 +89,8 @@ export default {
 										content: `Enhance this for image generation: ${finalPrompt}`,
 									},
 								],
+								// Prompt rewriting needs no chain-of-thought; skip it for latency and cost.
+								chat_template_kwargs: { enable_thinking: false },
 							},
 							{
 								gateway: {
@@ -86,20 +99,20 @@ export default {
 							}
 						);
 
-						console.log('[LLAMA] Raw response:', JSON.stringify(enhanceResponse, null, 2));
+						console.log('[ENHANCE] Raw response:', JSON.stringify(enhanceResponse, null, 2));
 
-						const enhanced = enhanceResponse.response?.trim();
+						const enhanced = extractText(enhanceResponse)?.trim();
 						if (enhanced && enhanced.length > 0 && enhanced !== finalPrompt) {
 							enhancedPrompt = enhanced;
 							finalPrompt = enhanced;
-							console.log('[LLAMA] Enhanced prompt:', finalPrompt);
+							console.log('[ENHANCE] Enhanced prompt:', finalPrompt);
 						} else {
-							console.log('[LLAMA] No enhancement applied, using original');
+							console.log('[ENHANCE] No enhancement applied, using original');
 						}
-					} catch (llamaErr: any) {
-						console.error('[LLAMA] Enhancement failed:', llamaErr.message);
-						console.error('[LLAMA] Error details:', JSON.stringify(llamaErr, null, 2));
-						console.log('[LLAMA] Continuing with original prompt');
+					} catch (enhanceErr: any) {
+						console.error('[ENHANCE] Enhancement failed:', enhanceErr.message);
+						console.error('[ENHANCE] Error details:', JSON.stringify(enhanceErr, null, 2));
+						console.log('[ENHANCE] Continuing with original prompt');
 					}
 				} else {
 					if (images.length > 0) {
